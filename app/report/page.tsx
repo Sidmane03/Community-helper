@@ -5,10 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reportIssue, ReportState } from "./actions";
 import { Camera, MapPin, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ReportIssuePage() {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(reportIssue, {});
+
+  // Authentication State
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setCheckingAuth(false);
+    });
+  }, []);
 
   // Form local state for client-side validations and geolocation
   const [description, setDescription] = useState("");
@@ -108,6 +121,43 @@ export default function ReportIssuePage() {
       return () => clearTimeout(timer);
     }
   }, [state?.success, router]);
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8 text-teal-700" />
+        <span className="ml-2 text-gray-600 font-medium">Checking authorization...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm flex flex-col items-center">
+          <AlertCircle className="h-16 w-16 text-amber-600 mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-6 font-medium">
+            You must be signed in to submit an issue report. Please log in or sign up first.
+          </p>
+          <div className="flex flex-col w-full gap-3">
+            <Link
+              href="/login"
+              className="w-full inline-flex justify-center items-center px-4 py-3 bg-teal-600 text-white font-semibold rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 min-h-[44px]"
+            >
+              Log In
+            </Link>
+            <Link
+              href="/signup"
+              className="w-full inline-flex justify-center items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 min-h-[44px]"
+            >
+              Sign Up
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (state?.success) {
     return (
