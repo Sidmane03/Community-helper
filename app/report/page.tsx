@@ -393,7 +393,7 @@ export default function ReportIssuePage() {
                   Location Coordinates <span className="text-red-700">*</span>
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Required. Use the capture button to automatically retrieve your current GPS coordinates.
+                  Required. Click "Capture Geolocation" to retrieve your current coordinates automatically, or type them in manually below.
                 </p>
 
                 <button
@@ -431,14 +431,15 @@ export default function ReportIssuePage() {
                       Latitude
                     </label>
                     <input
-                      type="text"
+                      type="number"
+                      step="any"
                       id="latitude"
                       name="latitude"
                       value={latitude}
-                      readOnly
+                      onChange={(e) => setLatitude(e.target.value)}
                       required
-                      placeholder="Not captured"
-                      className="w-full bg-gray-100 border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none cursor-default"
+                      placeholder="e.g. 20.661000"
+                      className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                   <div>
@@ -449,14 +450,15 @@ export default function ReportIssuePage() {
                       Longitude
                     </label>
                     <input
-                      type="text"
+                      type="number"
+                      step="any"
                       id="longitude"
                       name="longitude"
                       value={longitude}
-                      readOnly
+                      onChange={(e) => setLongitude(e.target.value)}
                       required
-                      placeholder="Not captured"
-                      className="w-full bg-gray-100 border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none cursor-default"
+                      placeholder="e.g. 77.028900"
+                      className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                 </div>
