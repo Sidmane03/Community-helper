@@ -189,27 +189,21 @@ Example output:
       const latDelta = 0.0009; // ~100m in degrees of latitude
       const lngDelta = 0.0009; // ~100m in degrees of longitude
 
-      const tables = ["Issue", "issues", "issue", "Issues"];
-      for (const tableName of tables) {
-        const { data: dupIssues, error: dupError } = await supabase
-          .from(tableName)
-          .select("*")
-          .eq("category", aiCategory)
-          .gte("latitude", latitude - latDelta)
-          .lte("latitude", latitude + latDelta)
-          .gte("longitude", longitude - lngDelta)
-          .lte("longitude", longitude + lngDelta)
-          .neq("status", "resolved")
-          .neq("status", "Resolved")
-          .limit(1);
+      const { data: dupIssues, error: dupError } = await supabase
+        .from("Issue")
+        .select("*")
+        .eq("category", aiCategory)
+        .gte("latitude", latitude - latDelta)
+        .lte("latitude", latitude + latDelta)
+        .gte("longitude", longitude - lngDelta)
+        .lte("longitude", longitude + lngDelta)
+        .neq("status", "resolved")
+        .neq("status", "Resolved")
+        .limit(1);
 
-        if (!dupError && dupIssues && dupIssues.length > 0) {
-          duplicateFound = true;
-          duplicateIssue = dupIssues[0];
-          break;
-        } else if (dupError && dupError.code === "PGRST205") {
-          continue;
-        }
+      if (!dupError && dupIssues && dupIssues.length > 0) {
+        duplicateFound = true;
+        duplicateIssue = dupIssues[0];
       }
     }
 
@@ -220,7 +214,7 @@ Example output:
         duplicateIssue: {
           id: duplicateIssue.id,
           description: duplicateIssue.description,
-          photoUrl: duplicateIssue.photo_url || duplicateIssue.photoUrl || "",
+          photoUrl: duplicateIssue.image_url || duplicateIssue.photo_url || duplicateIssue.photoUrl || "",
           latitude: duplicateIssue.latitude,
           longitude: duplicateIssue.longitude,
         },
@@ -229,60 +223,26 @@ Example output:
       };
     }
 
-    // 7. Insert into Database with resilient fallback logic
-    const tables = ["Issue", "issues", "issue", "Issues"];
-    const columnVariations = [
-      { reporterKey: "reporter_id", photoKey: "photo_url", sourceKey: "category_source" },
-      { reporterKey: "author_id", photoKey: "photo_url", sourceKey: "category_source" },
-      { reporterKey: "reporterId", photoKey: "photoUrl", sourceKey: "categorySource" },
-    ];
-    const statusVariations = ["reported", "Reported"];
+    // 7. Insert into Database using exact table name 'Issue' and SCHEMA.md columns
+    const payload = {
+      author_id: user.id,
+      image_url: publicUrl,
+      description: description,
+      latitude: latitude,
+      longitude: longitude,
+      status: "reported",
+      category: aiCategory,
+      severity: aiSeverity,
+    };
 
-    let insertSuccess = false;
-    let lastDbError = null;
+    const { error: dbError } = await supabase
+      .from("Issue")
+      .insert([payload]);
 
-    for (const tableName of tables) {
-      for (const cols of columnVariations) {
-        for (const statusVal of statusVariations) {
-          const payload = {
-            [cols.reporterKey]: user.id,
-            [cols.photoKey]: publicUrl,
-            description: description,
-            latitude: latitude,
-            longitude: longitude,
-            status: statusVal,
-            category: aiCategory,
-            severity: aiSeverity,
-            [cols.sourceKey]: "ai",
-          };
-
-          const { data, error } = await supabase
-            .from(tableName)
-            .insert([payload])
-            .select();
-
-          if (!error) {
-            insertSuccess = true;
-            console.log(`Successfully inserted into table: ${tableName} using ${cols.reporterKey}`);
-            break;
-          } else {
-            lastDbError = error;
-            if (error.code === "PGRST205") {
-              break;
-            }
-          }
-        }
-        if (insertSuccess) break;
-      }
-      if (insertSuccess) break;
-    }
-
-    if (!insertSuccess) {
-      console.error("Database insert error:", lastDbError);
+    if (dbError) {
+      console.error("Database insert error:", dbError);
       return {
-        error: `Failed to save issue to database: ${
-          lastDbError ? JSON.stringify(lastDbError) : "Unknown DB Error"
-        }`,
+        error: `Failed to save issue to database: ${JSON.stringify(dbError)}`,
       };
     }
 
