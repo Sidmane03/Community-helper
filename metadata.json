@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Community Hero",
+  "description": "A community-driven, hyperlocal infrastructure resolution platform.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
