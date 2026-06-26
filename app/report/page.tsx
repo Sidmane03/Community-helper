@@ -33,9 +33,9 @@ export default function ReportIssuePage() {
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [fileError, setFileError] = useState("");
-  const [locationError, setLocationError] = useState("");
-  const [isLocating, setIsLocating] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [address, setAddress] = useState("");
+  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
 
   // Duplicate bypass local states
   const [bypassDuplicate, setBypassDuplicate] = useState(false);
@@ -49,6 +49,34 @@ export default function ReportIssuePage() {
       setCheckingAuth(false);
     });
   }, []);
+
+  // Fetch address via reverse geocoding on latitude/longitude change
+  useEffect(() => {
+    if (!latitude || !longitude) return;
+
+    const timer = setTimeout(async () => {
+      setIsFetchingAddress(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`,
+          {
+            headers: {
+              "User-Agent": "Community-Hero-App/1.0",
+            },
+          }
+        );
+        const data = await res.json();
+        setAddress(data.display_name || `${latitude}, ${longitude}`);
+      } catch (err) {
+        console.error("Address fetch error:", err);
+        setAddress(`${latitude}, ${longitude}`);
+      } finally {
+        setIsFetchingAddress(false);
+      }
+    }, 600); // 600ms debounce to prevent spamming API on map drag
+
+    return () => clearTimeout(timer);
+  }, [latitude, longitude]);
 
   // Client-side image validation (5MB size, JPEG/PNG/WEBP formats)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,42 +107,7 @@ export default function ReportIssuePage() {
     reader.readAsDataURL(file);
   };
 
-  // Browser geolocation capture
-  const handleGetLocation = () => {
-    setLocationError("");
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by your browser.");
-      return;
-    }
 
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude.toFixed(6));
-        setLongitude(position.coords.longitude.toFixed(6));
-        setIsLocating(false);
-      },
-      (error) => {
-        setIsLocating(false);
-        console.error("Geolocation error:", error);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError("Location permission denied. Please allow access in your browser settings.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError("Location information is unavailable.");
-            break;
-          case error.TIMEOUT:
-            setLocationError("Location request timed out. Please try again.");
-            break;
-          default:
-            setLocationError("Failed to retrieve location coordinates.");
-            break;
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
   // Sync AI properties from server validation state
   useEffect(() => {
@@ -398,87 +391,40 @@ export default function ReportIssuePage() {
                 )}
               </div>
 
-              {/* Location Capture Field */}
+              {/* Location Selector */}
               <div>
-                <label className="block text-base font-bold text-gray-900 mb-1">
-                  Location Coordinates <span className="text-red-700">*</span>
+                <label className="block text-base font-bold text-gray-900 mb-1" htmlFor="address-display">
+                  Reported Location / Area <span className="text-red-700">*</span>
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Required. Click "Capture Geolocation" to retrieve your current coordinates automatically, or type them in manually below.
+                  Required. Tap anywhere on the map or use the GPS button to select the location.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isLocating}
-                  className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 shadow-sm text-base font-bold rounded-md text-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 min-h-[44px] disabled:opacity-50 transition-colors"
-                >
-                  {isLocating ? (
-                    <>
-                      <Loader2 className="animate-spin h-5 w-5 mr-2 text-teal-700" />
-                      Locating...
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="h-5 w-5 mr-2 text-teal-700" />
-                      Capture Geolocation
-                    </>
+                {/* Hidden coordinate fields for form submission */}
+                <input type="hidden" name="latitude" value={latitude} />
+                <input type="hidden" name="longitude" value={longitude} />
+
+                {/* Display resolved address */}
+                <div className="relative mb-3">
+                  <input
+                    type="text"
+                    id="address-display"
+                    name="address"
+                    readOnly
+                    value={isFetchingAddress ? "Determining area name..." : address || ""}
+                    placeholder="Please tap on the map below to select location."
+                    required
+                    className="w-full bg-gray-100 border border-gray-300 rounded px-3 py-2 text-sm font-semibold text-gray-900 focus:outline-none cursor-default"
+                  />
+                  {isFetchingAddress && (
+                    <div className="absolute right-3 top-2.5">
+                      <Loader2 className="animate-spin h-4 w-4 text-teal-700" />
+                    </div>
                   )}
-                </button>
-
-                {locationError && (
-                  <p className="mt-2 text-sm text-red-700 font-semibold flex items-center" role="alert">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {locationError}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <label
-                      htmlFor="latitude"
-                      className="block text-xs font-bold text-gray-700 mb-1"
-                    >
-                      Latitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      id="latitude"
-                      name="latitude"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value)}
-                      required
-                      placeholder="e.g. 20.661000"
-                      className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="longitude"
-                      className="block text-xs font-bold text-gray-700 mb-1"
-                    >
-                      Longitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      id="longitude"
-                      name="longitude"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value)}
-                      required
-                      placeholder="e.g. 77.028900"
-                      className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
                 </div>
 
                 {/* Map Selector */}
-                <div className="mt-4">
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Map Selector (Tap map to set coordinates)
-                  </label>
+                <div className="mt-2">
                   <MapPicker
                     latitude={latitude ? parseFloat(latitude) : null}
                     longitude={longitude ? parseFloat(longitude) : null}

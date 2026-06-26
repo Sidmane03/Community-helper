@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Navigation, Maximize2, Minimize2, Loader2 } from "lucide-react";
 
 // Workaround for Leaflet marker icon issue in Webpack/Next.js
 const fixLeafletIcon = () => {
@@ -25,24 +26,28 @@ export default function MapPicker({ latitude, longitude, onChange }: MapPickerPr
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
   useEffect(() => {
     fixLeafletIcon();
 
     if (!mapContainerRef.current) return;
 
-    // Default center: use current coordinates or fallback to a default city (e.g. Pune/Baramati region from user screenshot)
+    // Default center: Pune/Baramati region
     const initialLat = latitude || 20.661000;
     const initialLng = longitude || 77.028900;
     const zoom = latitude && longitude ? 15 : 12;
 
-    // Initialize map
-    const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], zoom);
+    // Initialize map with attributionControl: false to remove OSM copyright footer
+    const map = L.map(mapContainerRef.current, { 
+      attributionControl: false 
+    }).setView([initialLat, initialLng], zoom);
+    
     mapRef.current = map;
 
     // Add openstreetmap tiles
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     // If initial coordinates exist, place a marker
     if (latitude && longitude) {
@@ -63,7 +68,7 @@ export default function MapPicker({ latitude, longitude, onChange }: MapPickerPr
     };
   }, []);
 
-  // Update marker position and center map when latitude/longitude props change externally (e.g., Geolocation capture)
+  // Update marker position and center map when latitude/longitude props change externally
   useEffect(() => {
     const map = mapRef.current;
     if (!map || latitude === null || longitude === null) return;
@@ -71,7 +76,6 @@ export default function MapPicker({ latitude, longitude, onChange }: MapPickerPr
     const currentCenter = map.getCenter();
     const newPos: L.LatLngExpression = [latitude, longitude];
 
-    // If marker already exists, update its position, otherwise create it
     if (markerRef.current) {
       markerRef.current.setLatLng(newPos);
     } else {
@@ -84,16 +88,97 @@ export default function MapPicker({ latitude, longitude, onChange }: MapPickerPr
     }
   }, [latitude, longitude]);
 
+  // Handle fullscreen toggle resize invalidate
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [isFullscreen]);
+
+  // GPS Locate inside map picker
+  const handleLocate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!navigator.geolocation) return;
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        onChange(
+          parseFloat(position.coords.latitude.toFixed(6)),
+          parseFloat(position.coords.longitude.toFixed(6))
+        );
+      },
+      (error) => {
+        setIsLocating(false);
+        console.error("GPS map locating error:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleFullscreenToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
-    <div className="relative">
+    <div className={isFullscreen ? "fixed inset-0 w-screen h-screen z-[9998] bg-white" : "relative"}>
       <div 
         ref={mapContainerRef} 
-        className="h-64 w-full rounded-lg border border-gray-300 shadow-inner z-0" 
-        style={{ minHeight: "260px" }}
+        className={isFullscreen 
+          ? "w-full h-full z-0" 
+          : "h-64 w-full rounded-lg border border-gray-300 shadow-inner z-0"
+        }
+        style={isFullscreen ? {} : { minHeight: "260px" }}
       />
-      <div className="absolute bottom-2 left-2 bg-white px-2 py-1 text-[10px] font-semibold text-gray-700 rounded shadow border border-gray-200 pointer-events-none z-[1000]">
-        Tap anywhere on the map to select coordinates
+      
+      {/* Floating Controls at Top Right */}
+      <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
+        {/* GPS Locate Button */}
+        <button
+          type="button"
+          onClick={handleLocate}
+          disabled={isLocating}
+          title="Center on my location"
+          className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-md flex items-center justify-center text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 min-h-[40px]"
+        >
+          {isLocating ? (
+            <Loader2 className="h-5 w-5 animate-spin text-teal-700" />
+          ) : (
+            <Navigation className="h-5 w-5 text-teal-700 fill-teal-50" />
+          )}
+        </button>
+
+        {/* Fullscreen Button */}
+        <button
+          type="button"
+          onClick={handleFullscreenToggle}
+          title={isFullscreen ? "Exit Fullscreen" : "Fullscreen map"}
+          className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-md flex items-center justify-center text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 min-h-[40px]"
+        >
+          {isFullscreen ? (
+            <Minimize2 className="h-5 w-5 text-teal-700" />
+          ) : (
+            <Maximize2 className="h-5 w-5 text-teal-700" />
+          )}
+        </button>
       </div>
+
+      {/* Floating Exit Button in Fullscreen Mode */}
+      {isFullscreen && (
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(false)}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-teal-700 hover:bg-teal-800 text-white font-bold px-6 py-3 rounded-full shadow-lg flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 min-h-[44px]"
+        >
+          <Minimize2 className="h-5 w-5" />
+          Exit Map View
+        </button>
+      )}
     </div>
   );
 }
