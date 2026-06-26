@@ -224,15 +224,12 @@ Example output:
     }
 
     // 7. Insert into Database using exact table name 'Issue' and SCHEMA.md columns
-    const address = formData.get("address") as string || "";
-
     const payload = {
       author_id: user.id,
       image_url: publicUrl,
       description: description,
       latitude: latitude,
       longitude: longitude,
-      address: address,
       status: "reported",
       category: aiCategory,
       severity: aiSeverity,

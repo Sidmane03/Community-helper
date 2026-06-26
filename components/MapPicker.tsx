@@ -88,15 +88,33 @@ export default function MapPicker({ latitude, longitude, onChange }: MapPickerPr
     }
   }, [latitude, longitude]);
 
-  // Handle fullscreen toggle resize invalidate
+  // Handle fullscreen toggle resize invalidate and map centering
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize();
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [isFullscreen]);
+    const map = mapRef.current;
+    if (!map) return;
+    
+    // Invalidate size immediately
+    map.invalidateSize({ animate: false });
+    
+    // Recenter map on active coordinates when toggling fullscreen
+    if (latitude !== null && longitude !== null) {
+      map.setView([latitude, longitude], 15);
+    }
+
+    // Invalidate size at multiple intervals to handle browser reflow delays
+    const intervals = [50, 100, 200, 400, 800];
+    const timers = intervals.map(delay => 
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize({ animate: false });
+        }
+      }, delay)
+    );
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [isFullscreen, latitude, longitude]);
 
   // GPS Locate inside map picker
   const handleLocate = (e: React.MouseEvent) => {
