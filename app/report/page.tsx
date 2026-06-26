@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { reportIssue } from "./actions";
 import { Camera, MapPin, Loader2, AlertCircle, ArrowLeft, CheckCircle2, AlertTriangle, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import dynamic from "next/dynamic";
+
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 w-full bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center font-semibold text-gray-500 z-0" style={{ minHeight: "260px" }}>
+      <Loader2 className="animate-spin h-5 w-5 mr-2 text-teal-700" />
+      Loading Map...
+    </div>
+  ),
+});
 
 export default function ReportIssuePage() {
   const router = useRouter();
@@ -461,6 +472,21 @@ export default function ReportIssuePage() {
                       className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
+                </div>
+
+                {/* Map Selector */}
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Map Selector (Tap map to set coordinates)
+                  </label>
+                  <MapPicker
+                    latitude={latitude ? parseFloat(latitude) : null}
+                    longitude={longitude ? parseFloat(longitude) : null}
+                    onChange={(lat, lng) => {
+                      setLatitude(lat.toString());
+                      setLongitude(lng.toString());
+                    }}
+                  />
                 </div>
               </div>
 
