@@ -17,19 +17,10 @@ export async function signup(formData: FormData) {
     },
   };
 
-  const { data: signUpResult, error } = await supabase.auth.signUp(data);
+  const { error } = await supabase.auth.signUp(data);
 
   if (error) {
-    redirect(`/signup?message=${encodeURIComponent(error.message)}`);
-  }
-
-  if (signUpResult?.user && !signUpResult?.session) {
-    redirect(
-      "/login?message=" +
-        encodeURIComponent(
-          "Registration successful! Please check your email to confirm your account before logging in."
-        )
-    );
+    redirect("/signup?message=Could not authenticate user");
   }
 
   revalidatePath("/", "layout");

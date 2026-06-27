@@ -1,13 +1,7 @@
 import { login } from "@/app/login/actions";
 import Link from "next/link";
 
-interface LoginPageProps {
-  searchParams: Promise<{ message?: string }>;
-}
-
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { message } = await searchParams;
-
+export default function LoginPage() {
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm border border-gray-100">
@@ -19,19 +13,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Log in to your Community Hero account
           </p>
         </div>
-
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-md border-l-4 ${
-              message.toLowerCase().includes("successful") ||
-              message.toLowerCase().includes("confirm")
-                ? "bg-teal-50 border-teal-600 text-teal-800"
-                : "bg-red-50 border-red-600 text-red-800"
-            }`}
-          >
-            <p className="text-sm font-semibold">{message}</p>
-          </div>
-        )}
 
         <form className="space-y-6">
           <div>

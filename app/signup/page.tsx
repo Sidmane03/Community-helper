@@ -1,13 +1,7 @@
 import { signup } from "@/app/signup/actions";
 import Link from "next/link";
 
-interface SignupPageProps {
-  searchParams: Promise<{ message?: string }>;
-}
-
-export default async function SignupPage({ searchParams }: SignupPageProps) {
-  const { message } = await searchParams;
-
+export default function SignupPage() {
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm border border-gray-100">
@@ -19,12 +13,6 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             Create an account to report issues
           </p>
         </div>
-
-        {message && (
-          <div className="mb-6 p-4 rounded-md bg-red-50 border-l-4 border-red-600">
-            <p className="text-sm font-semibold text-red-800">{message}</p>
-          </div>
-        )}
 
         <form className="space-y-6">
           <div>
