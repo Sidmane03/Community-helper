@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { revalidatePath } from "next/cache";
 
 export interface ReportState {
   success?: boolean;
@@ -171,7 +172,9 @@ Example output:
         ]);
 
         const text = response.response.text();
-        const parsed = JSON.parse(text);
+        // Remove markdown formatting if Gemini includes it
+        const cleanedText = text.replace(/```(?:json)?/gi, "").trim();
+        const parsed = JSON.parse(cleanedText);
         aiCategory = normalizeCategory(parsed.category || "other");
         aiSeverity = normalizeSeverity(parsed.severity || "medium");
       } catch (err: any) {
@@ -245,6 +248,9 @@ Example output:
         error: `Failed to save issue to database: ${JSON.stringify(dbError)}`,
       };
     }
+
+    revalidatePath("/");
+    revalidatePath("/discover");
 
     return { success: true };
   } catch (err: any) {

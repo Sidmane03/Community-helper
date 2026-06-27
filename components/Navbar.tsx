@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, Map, Plus } from "lucide-react";
 import { logout } from "./actions";
 
 export default async function Navbar() {
@@ -20,55 +20,79 @@ export default async function Navbar() {
   }
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
+    <nav className="border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <Link href="/" className="flex-shrink-0 flex items-center">
-              <span className="font-bold text-xl text-teal-700 tracking-tight">
-                Community Hero
-              </span>
+        <div className="flex justify-between h-16 items-center">
+          {/* Brand */}
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center shadow-sm">
+              <Map className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-extrabold text-lg text-gray-900 tracking-tight">
+              Community<span className="text-teal-600">Hero</span>
+            </span>
+          </Link>
+
+          {/* Center Nav Links */}
+          <div className="hidden sm:flex items-center gap-1">
+            <Link
+              href="/discover"
+              className="text-sm font-semibold text-gray-600 hover:text-teal-700 px-3 py-2 rounded-lg hover:bg-teal-50 transition-colors"
+            >
+              Discover
             </Link>
           </div>
-          <div className="flex items-center">
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-sm text-gray-700 font-medium">
-                  <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full flex items-center">
-                    <span className="font-bold mr-1">
-                      {userProfile?.points ?? 0}
-                    </span>{" "}
-                    pts
-                  </div>
-                  <span className="hidden sm:inline-block">
-                    {userProfile?.display_name || user.email}
-                  </span>
+              <>
+                {/* Points badge */}
+                <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1 rounded-full text-sm font-bold">
+                  <span>⭐</span>
+                  <span>{userProfile?.points ?? 0} pts</span>
                 </div>
+
+                {/* User name */}
+                <span className="hidden md:inline text-sm font-semibold text-gray-700">
+                  {userProfile?.display_name || user.email?.split("@")[0]}
+                </span>
+
+                {/* Report CTA */}
+                <Link
+                  href="/report"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Report</span>
+                </Link>
+
+                {/* Logout */}
                 <form action={logout}>
                   <button
                     type="submit"
-                    className="p-2 text-gray-400 hover:text-gray-500 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
                     title="Log out"
                   >
-                    <LogOut className="h-5 w-5" />
+                    <LogOut className="h-4 w-4" />
                   </button>
                 </form>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <>
                 <Link
                   href="/login"
-                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/signup"
-                  className="bg-teal-600 text-white hover:bg-teal-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-sm"
                 >
                   Sign up
                 </Link>
-              </div>
+              </>
             )}
           </div>
         </div>
